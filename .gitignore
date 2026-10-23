@@ -1,0 +1,47 @@
+# ── Sistema operativo y editores ─────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# ── Variables de entorno (solo se versiona .env.example) ─────
+.env
+.env.*
+!.env.example
+
+# ── Frontend: React + Vite + pnpm ────────────────────────────
+node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+*.local
+.pnpm-store/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-error.log*
+coverage/
+# pnpm-lock.yaml SÍ se versiona (no ignorar)
+
+# ── Backend: FastAPI + uv (Python) ───────────────────────────
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+# uv.lock SÍ se versiona (no ignorar)
+
+# ── Docker y datos locales ───────────────────────────────────
+docker-compose.override.yml
+pgdata/
+
+# ── Logs ─────────────────────────────────────────────────────
+*.log
+logs/
