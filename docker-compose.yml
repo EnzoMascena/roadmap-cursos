@@ -1,0 +1,47 @@
+# Entorno de DESARROLLO de Senda (v0.1.0). Simple a propósito: sin healthchecks,
+# sin multi-stage y sin optimización de imágenes (eso llega en otra clase).
+# Las variables salen de .env (copiá .env.example); si falta, valen los defaults de abajo.
+
+services:
+  postgres:
+    image: postgres:18.6
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-senda}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-senda}
+      POSTGRES_DB: ${POSTGRES_DB:-senda}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # PostgreSQL 18 guarda los datos dentro de /var/lib/postgresql (TRD §3.3)
+      - pgdata:/var/lib/postgresql
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://senda:senda@postgres:5432/senda}
+      SEED_DEMO: ${SEED_DEMO:-true}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      # Solo el código, para que uvicorn --reload tome los cambios
+      - ./backend/app:/app/app
+    depends_on:
+      - postgres
+
+  frontend:
+    build: ./frontend
+    environment:
+      # Adentro de la red de Compose el backend se llama "backend"
+      API_PROXY_TARGET: http://backend:8000
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      # Solo el código, para que Vite recargue en caliente
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

@@ -3,11 +3,50 @@
 > WebApp de gestión de comunidad de cursos: catálogo comunitario de cursos gratuitos, validado
 > por moderadores, + roadmaps personales de aprendizaje.
 >
-> **Estado:** 📚 Documentación (Instancia A) — desarrollo pendiente de aprobación docente.
+> **Estado:** 🚧 Desarrollo (Instancia B) — scaffold v0.1.0: catálogo de ejemplo con backend, frontend y Docker Compose.
 
 **Stack:** React 19 + Vite + pnpm · FastAPI + uv · PostgreSQL 18.6 · Docker Compose (dev)
 
 ---
+
+## Cómo levantar
+
+Requisitos: **Git** y **Docker** con Docker Compose (versiones registradas en el
+[TRD §1](docs/TRD.md#1-stack-y-versiones-exactas): Docker 29.6.2 · Compose 5.1.4).
+
+```bash
+git clone https://github.com/EnzoMascena/roadmap-cursos.git
+cd roadmap-cursos
+cp .env.example .env
+docker compose up
+```
+
+La primera vez construye las imágenes (tarda unos minutos). Cuando los 3 servicios están arriba:
+
+| Qué | URL | Qué tenés que ver |
+|-----|-----|-------------------|
+| Frontend | http://localhost:5173 | el catálogo con 6 cursos de ejemplo |
+| Backend | http://localhost:8000/health | `{"status":"ok"}` |
+| API del catálogo | http://localhost:8000/api/v1/cursos | la primera página del catálogo en JSON |
+| API + base de datos | http://localhost:8000/api/v1/health | `{"status":"ok","db":"ok"}` (si da `503`, PostgreSQL todavía está arrancando: esperá unos segundos) |
+| Documentación de la API | http://localhost:8000/docs | Swagger UI de FastAPI |
+| PostgreSQL | `localhost:5432` | usuario, clave y base: `senda` |
+
+- **Frenar:** `Ctrl+C` y después `docker compose down` (con `-v` también borra los datos de la base).
+- **Si cambian dependencias** (`pyproject.toml` o `package.json`): `docker compose up --build`.
+- **Ver el estado vacío del catálogo:** `SEED_DEMO=false` en el `.env` y `docker compose up -d backend`.
+- **Puerto ocupado** (`port is already allocated`): frená el otro servicio (`docker ps` para verlo)
+  o cambiá `POSTGRES_PORT`, `BACKEND_PORT` o `FRONTEND_PORT` en el `.env`.
+
+<details>
+<summary>Sin Docker (opcional)</summary>
+
+- **Backend** (requiere uv): `cd backend && uv sync && uv run uvicorn app.main:app --reload`
+  → http://localhost:8000/health
+- **Frontend** (requiere Node 20.19+ o 22.12+ y pnpm 12): `cd frontend && pnpm install && pnpm dev`
+  → http://localhost:5173 (el proxy `/api` apunta a `http://localhost:8000`)
+
+</details>
 
 ## Qué hace
 
@@ -37,28 +76,28 @@ marca su avance: pendiente, en curso o completado.
   `erDiagram`, `stateDiagram`).
 - La historia muestra la evolución de la SPEC: `git log --reverse --oneline -- docs/SPEC.md`
   (primer commit = SPEC de clase tal cual; después, el refinamiento).
-- El flujo de Git se ve con `git log --graph --oneline --all`: una rama por documento, mergeada
-  con `--no-ff` a `main` (detalle en [TRD §4.1](docs/TRD.md#41-flujo-de-git--github-flow-adaptado)).
+- El flujo de Git se ve con `git log --graph --oneline --all`: ramas `feat/T{N}-…` mergeadas a
+  `dev` y releases de `dev` a `main` con tag (detalle en
+  [TRD §4.1](docs/TRD.md#41-flujo-de-git--main-dev-y-releases-versionadas)).
+- Las versiones publicadas se listan con `git tag` y se describen en el [CHANGELOG](CHANGELOG.md).
 - Preview local: VS Code con `Ctrl+Shift+V`.
 
 ## Estado del trabajo
 
 | Instancia | Contenido | Estado |
 |-----------|-----------|--------|
-| A — Documentación | repo + 7 documentos | ✅ enviada a aprobación el 23/10/2026 |
-| B — Desarrollo del MVP | ejecución del [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) (US-001 a US-010) | ⏳ pendiente de aprobación |
-| C — Clase 27/10 | testing, Docker multi-stage, gestión del cambio | ⏳ |
-
-> Las instrucciones para levantar el proyecto (`docker compose up`, URLs, usuarios de prueba) se
-> agregan en la Instancia B (tarea 6.1 del plan).
+| A — Documentación | repo + 7 documentos | ✅ entregada el 23/10/2026 |
+| B — Desarrollo del MVP | ejecución del [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) (US-001 a US-010) | 🚧 en curso |
+| Clase 27/10 | flujo `main`/`dev`, scaffold y release `v0.1.0` | 🚧 en curso |
 
 ## Versionado
 
-- **Flujo de Git:** GitHub Flow adaptado. `main` siempre entregable y sin commits directos (salvo
-  el primer commit con la SPEC original, exigido por la consigna). Cada documento o tarea del plan
-  se trabaja en una rama corta (`docs/<documento>`, `feat/<modulo>-<tarea>`, `fix/…`, `docker/…`,
-  `chore/…`) que vuelve a `main` con `git merge --no-ff`. Detalle en el
-  [TRD §4](docs/TRD.md#4-convenciones).
+- **Flujo de Git:** `main` solo tiene releases taggeadas (`vX.Y.Z`); `dev` integra el trabajo;
+  cada ticket se hace en `feat/T{N}-descripcion-corta` (o `fix/descripcion-corta`), que nace de
+  `dev` y vuelve a `dev` con `git merge --no-ff`. Un release lleva `dev` a `main` con tag anotado y
+  el [CHANGELOG](CHANGELOG.md) actualizado. La Instancia A (documentación) se hizo antes con
+  GitHub Flow adaptado. Detalle en el [TRD §4](docs/TRD.md#4-convenciones).
+- **Versionado:** [SemVer](https://semver.org/lang/es/), en `0.y.z` mientras el producto es inestable.
 - **Convención de commits:** Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `docker:`,
   `chore:`, `refactor:`), también en los merge commits.
 

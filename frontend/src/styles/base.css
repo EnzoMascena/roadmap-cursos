@@ -1,0 +1,84 @@
+/* Estilos base (mobile-first): esta capa NO usa media queries de ancho.
+   Las únicas permitidas en el proyecto son @media (min-width: 600px) y (min-width: 840px),
+   y solo para agregar o mejorar (UX-UI §3). */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font: var(--text-body);
+  color: var(--color-text);
+  background: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Contenedor de página: padding lateral --space-4 en la base */
+.contenedor {
+  padding: var(--space-5) var(--space-4) var(--space-7);
+}
+
+@media (min-width: 600px) {
+  .contenedor {
+    padding-inline: var(--space-5);
+  }
+}
+
+@media (min-width: 840px) {
+  .contenedor {
+    max-width: var(--container-max);
+    margin-inline: auto;
+  }
+}
+
+/* Primer elemento enfocable: salta el header (UX-UI §6) */
+.saltar-al-contenido {
+  position: absolute;
+  top: var(--space-2);
+  left: -9999px;
+  z-index: var(--z-snackbar);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font: var(--text-label);
+}
+
+.saltar-al-contenido:focus {
+  left: var(--space-4);
+}
+
+/* Iconos Material Symbols (UX-UI §7). Mejora progresiva: quedan ocultos hasta que carga
+   la fuente (main.jsx agrega .iconos-listos); sin conexión no se ve el nombre del icono. */
+.material-symbols-rounded {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  overflow: hidden;
+  font-size: 24px;
+  line-height: 1;
+  vertical-align: middle;
+  visibility: hidden;
+}
+
+.iconos-listos .material-symbols-rounded {
+  visibility: visible;
+}

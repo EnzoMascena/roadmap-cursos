@@ -2,7 +2,7 @@
 
 > **Qué es:** el orden de construcción de Senda para la Instancia B: módulos, dependencias,
 > tareas con su definición de hecho verificable, estimaciones y la rama de cada tarea según el
-> flujo de Git del [TRD §4.1](TRD.md#41-flujo-de-git--github-flow-adaptado).
+> flujo de Git del [TRD §4.1](TRD.md#41-flujo-de-git--main-dev-y-releases-versionadas).
 > Se ejecuta **solo después del correo APROBADO con el T1**.
 
 ## 1. MVP — qué es P0
@@ -24,7 +24,7 @@
 
 **Fuera del MVP (P1, módulo M5):** US-011 reordenar el roadmap · US-012 corregir y reenviar un aporte rechazado.
 
-**Pregunta de cierre del lunes 26/10 a las 22:00:** ¿en una máquina limpia, con `docker compose up`,
+**Pregunta de cierre de la Instancia B (martes 27/10, 22:00):** ¿en una máquina limpia, con `docker compose up`,
 funcionan US-001 a US-010 desde la UI? Sí / No.
 
 ## 2. Módulos y dependencias
@@ -55,11 +55,11 @@ flowchart LR
 | # | Tarea | Hecho cuando… | Estimación |
 |---|-------|----------------|------------|
 | 0.1 | Estructura de carpetas del TRD §3.2 (dominios en back y front) | `find backend/app frontend/src -type d` muestra `identidad`, `catalogo`, `aportes`, `validacion`, `roadmap` en ambos lados | 30 min |
-| 0.2 | `docker-compose.yml` con `postgres:18.6` (volumen en `/var/lib/postgresql`, healthcheck `pg_isready`) y `mailpit` | `docker compose up -d postgres mailpit` → `docker compose ps` muestra postgres `healthy`; `http://localhost:8025` abre la bandeja; tras `down` y `up` los datos persisten | 45 min |
-| 0.3 | Backend FastAPI 0.158.2 con uv: `pyproject.toml`, `Dockerfile`, `config.py`, `compartido/` (db, errores, paginación) y `GET /api/v1/health` | `curl -s localhost:8000/api/v1/health` → `200 {"status":"ok","db":"ok"}`; un endpoint inexistente responde con el envelope de error | 1 h 30 min |
+| 0.2 | `docker-compose.yml` con `postgres:18.6` (volumen nombrado en `/var/lib/postgresql`) | `docker compose up -d postgres` → `docker compose ps` muestra postgres `running`; tras `docker compose down` y `up` los datos persisten | 45 min |
+| 0.3 | Backend FastAPI 0.158.2 con uv: `pyproject.toml`, `Dockerfile`, `config.py`, `compartido/` (db, errores, paginación) y `GET /api/v1/health` | `curl -s localhost:8000/health` → `{"status":"ok"}`; con postgres arriba, `curl -s localhost:8000/api/v1/health` → `200 {"status":"ok","db":"ok"}` (sin base: `503 BD_NO_DISPONIBLE`); una ruta inexistente responde con el envelope de error | 1 h 30 min |
 | 0.4 | Alembic configurado; el contenedor corre `alembic upgrade head` y el seed al iniciar | `docker compose exec backend uv run alembic current` muestra la última revisión | 45 min |
 | 0.5 | Frontend Vite 8 + React 19 + React Router 7: `tokens.css`, `base.css`, `Layout`, `Header`, menú sándwich accesible, página 404, proxy `/api` | a 360 px se ve la hamburguesa; el drawer abre, atrapa el foco y cierra con `Esc`, link y scrim; a ≥ 840 px la navegación está en el header; `/no-existe` muestra la 404; `grep -rn "@media" frontend/src` solo muestra `min-width` | 2 h 30 min |
-| 0.6 | Compose completo: `frontend` + `backend` + `postgres` + `mailpit` con defaults de desarrollo | desde cero, `docker compose up` levanta los 4 servicios; `localhost:5173` muestra el shell y `localhost:5173/api/v1/health` responde vía proxy | 30 min |
+| 0.6 | Compose completo: `frontend` + `backend` + `postgres` con defaults de desarrollo | desde cero, `docker compose up` levanta los 3 servicios; `localhost:5173` muestra el catálogo y `localhost:5173/api/v1/cursos` responde vía proxy | 30 min |
 
 ### M1 — Identidad (registro, login, rate limit, recuperación)
 
@@ -69,7 +69,7 @@ flowchart LR
 | 1.2 | `POST /auth/registro` con bcrypt costo 12 y política de contraseña | curl válido → `201`; mismo email → `409 EMAIL_REGISTRADO`; contraseña sin número → `422`; `SELECT password_hash` empieza con `$2b$12$` | 1 h |
 | 1.3 | `POST /auth/login` (JWT HS256, 60 min), `GET /auth/me`, dependencias `get_usuario_actual` y `require_admin` | login válido → `200` con `access_token`; `/auth/me` con token → `200`, sin token → `401`; credenciales malas → `401 CREDENCIALES_INVALIDAS` | 1 h 15 min |
 | 1.4 | Rate limit con slowapi en login (5/min por IP) | 6 logins fallidos seguidos → el sexto responde `429 DEMASIADOS_INTENTOS` con header `Retry-After` | 45 min |
-| 1.5 | Recuperación: tabla `tokens_recuperacion` + `POST /auth/recuperacion` (202, 3/15 min, mail SMTP) + `POST /auth/recuperacion/confirmar` | pedir con un email registrado → el mail aparece en `localhost:8025` con el enlace; con ese token se cambia la contraseña (`204`) y el login funciona con la nueva; reusar el token → `400 TOKEN_INVALIDO`; email inexistente → igual `202` | 2 h |
+| 1.5 | Recuperación: servicio `mailpit` en el compose (tag fijo) + tabla `tokens_recuperacion` + `POST /auth/recuperacion` (202, 3/15 min, mail SMTP) + `POST /auth/recuperacion/confirmar` | pedir con un email registrado → el mail aparece en `localhost:8025` con el enlace; con ese token se cambia la contraseña (`204`) y el login funciona con la nueva; reusar el token → `400 TOKEN_INVALIDO`; email inexistente → igual `202` | 2 h |
 | 1.6 | Seed idempotente: admin (variables `ADMIN_*`) y usuarios demo | dos `docker compose up` seguidos no duplican usuarios; login como admin devuelve `rol: "admin"` | 30 min |
 | 1.7 | Front: `SessionContext`, cliente API con token, `RequiereSesion`, `RequiereAdmin`, manejo global de `401` | sin sesión, `/roadmap` lleva a `/login?next=/roadmap`; un token vencido o borrado en la base muestra "Tu sesión expiró" y lleva a login | 1 h 15 min |
 | 1.8 | Pantallas Registro y Login (incluye estado `429` con cuenta regresiva) y "Salir" | [Flujo 4](APPFlow.md#flujo-4--registro-login-y-rate-limiting) completo desde la UI | 1 h 30 min |
@@ -127,49 +127,52 @@ deja un producto navegable al terminar M2 y el seed evita cargar datos a mano pa
 
 ## 4. Ejecución (Instancia B)
 
-> **Regla:** 1 tarea (o lote coherente) = 1 rama con el nombre de esta tabla + commits
-> convencionales + merge `--no-ff` a `main` ([TRD §4.1](TRD.md#41-flujo-de-git--github-flow-adaptado)).
-> Esta tabla se actualiza al cerrar cada tarea con `[x]` y el SHA del merge.
+> **Regla:** cada tarea (o lote coherente) se abre como ticket `T{N}` → rama
+> `feat/T{N}-descripcion-corta` (o `fix/…`) desde `dev` → commits convencionales → merge `--no-ff`
+> a `dev`. Los releases llevan `dev` a `main` con tag ([TRD §4.1](TRD.md#41-flujo-de-git--main-dev-y-releases-versionadas)).
+> Esta tabla se actualiza al cerrar cada tarea con `[x]`, el ticket, la rama y el SHA del merge a `dev`.
 
-| # | Tarea | Módulo | Estado | Rama / Commit |
+| # | Tarea | Módulo | Estado | Ticket · rama · merge a `dev` |
 |---|-------|--------|--------|---------------|
-| 0.1 | Estructura de carpetas | M0 | [ ] | `chore/m0-estructura` |
-| 0.2 | Compose: postgres + mailpit | M0 | [ ] | `docker/m0-compose-postgres-mailpit` |
-| 0.3 | Backend base + health | M0 | [ ] | `feat/m0-backend-base` |
-| 0.4 | Alembic | M0 | [ ] | `feat/m0-alembic` |
-| 0.5 | Frontend shell + menú sándwich | M0 | [ ] | `feat/m0-frontend-shell` |
-| 0.6 | Compose completo | M0 | [ ] | `docker/m0-compose-completo` |
-| 1.1 | Modelo usuarios | M1 | [ ] | `feat/m1-modelo-usuarios` |
-| 1.2 | Registro | M1 | [ ] | `feat/m1-registro` |
-| 1.3 | Login JWT + me | M1 | [ ] | `feat/m1-login-jwt` |
-| 1.4 | Rate limit login | M1 | [ ] | `feat/m1-login-rate-limit` |
-| 1.5 | Recuperación de contraseña (API) | M1 | [ ] | `feat/m1-recuperacion` |
-| 1.6 | Seed de usuarios | M1 | [ ] | `feat/m1-seed-usuarios` |
-| 1.7 | Sesión en el front | M1 | [ ] | `feat/m1-sesion-front` |
-| 1.8 | Pantallas registro y login | M1 | [ ] | `feat/m1-pantallas-login-registro` |
-| 1.9 | Pantallas de recuperación | M1 | [ ] | `feat/m1-pantallas-recuperacion` |
-| 2.1 | Modelos categorías y cursos | M2 | [ ] | `feat/m2-modelo-cursos` |
-| 2.2 | API categorías | M2 | [ ] | `feat/m2-categorias-api` |
-| 2.3 | Seed de cursos | M2 | [ ] | `feat/m2-seed-cursos` |
-| 2.4 | API listado de cursos | M2 | [ ] | `feat/m2-cursos-listado-api` |
-| 2.5 | API detalle de curso | M2 | [ ] | `feat/m2-curso-detalle-api` |
-| 2.6 | Pantalla catálogo | M2 | [ ] | `feat/m2-pantalla-catalogo` |
-| 2.7 | Pantalla detalle | M2 | [ ] | `feat/m2-pantalla-detalle` |
-| 2.8 | Pantalla home | M2 | [ ] | `feat/m2-pantalla-home` |
-| 3.1 | API alta de aportes | M3 | [ ] | `feat/m3-aportes-alta-api` |
-| 3.2 | API mis aportes | M3 | [ ] | `feat/m3-mis-aportes-api` |
-| 3.3 | Pantalla aportar | M3 | [ ] | `feat/m3-pantalla-aportar` |
-| 3.4 | Pantallas mis aportes | M3 | [ ] | `feat/m3-pantallas-mis-aportes` |
-| 3.5 | API validación | M3 | [ ] | `feat/m3-validacion-api` |
-| 3.6 | Pantallas validación | M3 | [ ] | `feat/m3-pantallas-validacion` |
-| 4.1 | Modelo roadmap | M4 | [ ] | `feat/m4-modelo-roadmap` |
-| 4.2 | API roadmap | M4 | [ ] | `feat/m4-roadmap-api` |
-| 4.3 | Agregar desde el detalle | M4 | [ ] | `feat/m4-agregar-desde-detalle` |
-| 4.4 | Pantalla roadmap | M4 | [ ] | `feat/m4-pantalla-roadmap` |
-| 6.1 | README de ejecución | M6 | [ ] | `docs/m6-readme-ejecucion` |
-| 6.2 | Verificación en máquina limpia | M6 | [ ] | `docs/m6-cierre-plan` |
-| 5.1 | Reordenar roadmap (P1) | M5 | [ ] | `feat/m5-reordenar-roadmap` |
-| 5.2 | Reenviar aporte rechazado (P1) | M5 | [ ] | `feat/m5-reenviar-aporte` |
+| 0.1 | Estructura de carpetas | M0 | [x] | T1 · `feat/T1-scaffold-estructura` · 949b2c8 |
+| 0.2 | Compose: postgres | M0 | [x] | T4 · `feat/T4-docker-compose-dev` · 61ba23e |
+| 0.3 | Backend base + health | M0 | [x] | T2 · `feat/T2-backend-minimo` · 0b17602 |
+| 0.4 | Alembic | M0 | [ ] | — |
+| 0.5 | Frontend shell + menú sándwich | M0 | [ ] | parcial en T3 · `feat/T3-frontend-minimo` · d4aca33: Vite + React + tokens + catálogo; faltan router, menú sándwich y 404 |
+| 0.6 | Compose completo | M0 | [x] | T4 · `feat/T4-docker-compose-dev` · 61ba23e |
+| 1.1 | Modelo usuarios | M1 | [ ] | — |
+| 1.2 | Registro | M1 | [ ] | — |
+| 1.3 | Login JWT + me | M1 | [ ] | — |
+| 1.4 | Rate limit login | M1 | [ ] | — |
+| 1.5 | Recuperación de contraseña (API) | M1 | [ ] | — |
+| 1.6 | Seed de usuarios | M1 | [ ] | — |
+| 1.7 | Sesión en el front | M1 | [ ] | — |
+| 1.8 | Pantallas registro y login | M1 | [ ] | — |
+| 1.9 | Pantallas de recuperación | M1 | [ ] | — |
+| 2.1 | Modelos categorías y cursos | M2 | [ ] | — |
+| 2.2 | API categorías | M2 | [ ] | — |
+| 2.3 | Seed de cursos | M2 | [ ] | — |
+| 2.4 | API listado de cursos | M2 | [ ] | parcial en T2 · `feat/T2-backend-minimo` · 0b17602: contrato completo con datos en memoria; falta PostgreSQL |
+| 2.5 | API detalle de curso | M2 | [ ] | — |
+| 2.6 | Pantalla catálogo | M2 | [ ] | parcial en T3 · `feat/T3-frontend-minimo` · d4aca33: cards, estados y paginador; faltan filtros y búsqueda |
+| 2.7 | Pantalla detalle | M2 | [ ] | — |
+| 2.8 | Pantalla home | M2 | [ ] | — |
+| 3.1 | API alta de aportes | M3 | [ ] | — |
+| 3.2 | API mis aportes | M3 | [ ] | — |
+| 3.3 | Pantalla aportar | M3 | [ ] | — |
+| 3.4 | Pantallas mis aportes | M3 | [ ] | — |
+| 3.5 | API validación | M3 | [ ] | — |
+| 3.6 | Pantallas validación | M3 | [ ] | — |
+| 4.1 | Modelo roadmap | M4 | [ ] | — |
+| 4.2 | API roadmap | M4 | [ ] | — |
+| 4.3 | Agregar desde el detalle | M4 | [ ] | — |
+| 4.4 | Pantalla roadmap | M4 | [ ] | — |
+| 6.1 | README de ejecución | M6 | [ ] | parcial en T4 · `feat/T4-docker-compose-dev` · 61ba23e: cómo levantar el scaffold; faltan usuarios demo y guía por historia |
+| 6.2 | Verificación en máquina limpia | M6 | [ ] | — |
+| 5.1 | Reordenar roadmap (P1) | M5 | [ ] | — |
+| 5.2 | Reenviar aporte rechazado (P1) | M5 | [ ] | — |
+
+**Releases:** `v0.1.0` (27/10/2026) — scaffold, tickets T1 a T4. Detalle en el [CHANGELOG](../CHANGELOG.md).
 
 ## 5. Estrategia de testing
 
@@ -198,9 +201,19 @@ deja un producto navegable al terminar M2 y el seed evita cargar datos a mano pa
 | ≈ 41 h de P0 en un fin de semana | alto | empezar apenas llega el T1; orden por dependencias que deja un MVP navegable al cerrar M2; revisar estimaciones al cerrar cada módulo; M5 queda fuera del MVP |
 | El formulario de aporte tiene 14 campos con reglas cruzadas | medio | las reglas se escriben una vez en el schema Pydantic y se reflejan en validadores puros del front, ambos tomados de BackendSchema §3.3 |
 | Detrás del proxy de Vite todas las requests llegan con la IP del contenedor `frontend`, y el rate limit se vuelve global | medio | proxy con `xfwd: true` y `key_func` de slowapi que use `X-Forwarded-For` solo en desarrollo; probado en la tarea 1.4 |
-| El mail de recuperación no sale desde el contenedor | medio | Mailpit levantado y verificado en 0.2; la tarea 1.5 prueba el envío real antes de hacer las pantallas |
+| El mail de recuperación no sale desde el contenedor | medio | la tarea 1.5 empieza sumando Mailpit al compose y probando el envío real antes de hacer las pantallas |
 | Volumen de PostgreSQL 18 montado en la ruta vieja | alto | volumen en `/var/lib/postgresql` (TRD §3.3) y prueba de persistencia en 0.2 |
 | Diferencias entre la máquina propia y una limpia (puertos ocupados, `.env` olvidado) | alto | defaults de desarrollo en el compose (no hace falta `.env`) y verificación con clon nuevo en 6.2 |
+
+## 7. Registro de cambios del plan
+
+| Fecha | Cambio | Por qué |
+|-------|--------|---------|
+| 27/10/2026 | Cada tarea se abre como ticket `T{N}` con rama `feat/T{N}-…` desde `dev`; los releases se taggean en `main` | consigna de la clase del 27/10 ([TRD §4.1](TRD.md#41-flujo-de-git--main-dev-y-releases-versionadas)) |
+| 27/10/2026 | Mailpit pasa de las tareas 0.2 y 0.6 a la 1.5 | el scaffold `v0.1.0` lleva solo 3 servicios (consigna T4) |
+| 27/10/2026 | El compose no tiene healthcheck por ahora | consigna T4: healthchecks en una clase posterior |
+| 27/10/2026 | `GET /health` en la raíz, además de `GET /api/v1/health` | consigna T2 ([BackendSchema §3.6](BackendSchema.md#36-salud)) |
+| 27/10/2026 | La Instancia B cierra el martes 27/10 a las 22:00 | consigna de la clase del 27/10 |
 
 ---
 

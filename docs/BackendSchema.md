@@ -229,7 +229,9 @@ usuario puede volver atrás).
   | 404 | `NO_ENCONTRADO` | recurso inexistente o no visible para quien pregunta |
   | 409 | `EMAIL_REGISTRADO` · `CURSO_DUPLICADO` · `YA_EN_ROADMAP` · `YA_VALIDADO` · `APORTE_NO_EDITABLE` | conflictos de reglas de negocio |
   | 422 | `VALIDACION` | datos inválidos; `details` = `[{ "campo", "mensaje" }]` |
+  | 405 | `METODO_NO_PERMITIDO` | el método HTTP no existe para esa ruta |
   | 429 | `DEMASIADOS_INTENTOS` | rate limit; header `Retry-After` en segundos |
+  | 503 | `BD_NO_DISPONIBLE` | la base de datos no responde (§3.6) |
   | 500 | `ERROR_INTERNO` | error no previsto (se loggea) |
 
 **Objetos reutilizados en las respuestas:**
@@ -293,6 +295,11 @@ usuario puede volver atrás).
 | GET | `/api/v1/cursos` | pública (token opcional) | `page`, `page_size`, `categoria_id` (int), `q` (2 a 100 caracteres: busca en título, tema, plataforma y docentes, sin distinguir mayúsculas) | `200` paginado de `CursoResumen`, solo `publicado`, ordenado por `validado_en DESC` · `422` (`categoria_id` inexistente, `q` fuera de rango) |
 | GET | `/api/v1/cursos/{id}` | pública (token opcional) | — | `200` `CursoDetalle` · `404` si no existe o no está `publicado` |
 
+> **Estado en v0.1.0:** `GET /api/v1/cursos` ya responde con este contrato (paginación,
+> `categoria_id` y `q` incluidos) usando cursos de ejemplo en memoria. En M2 (tareas 2.1 a 2.4)
+> pasa a leer de PostgreSQL sin cambiar la respuesta. `GET /cursos/{id}` y `GET /categorias`
+> llegan en M2.
+
 Ejemplo `GET /api/v1/cursos?page=1&page_size=2&categoria_id=2` → `200`:
 
 ```json
@@ -347,7 +354,11 @@ Los ítems de otro usuario responden `404` (no `403`) para no revelar que existe
 
 | Método | Path | Auth | Respuestas |
 |--------|------|------|------------|
-| GET | `/api/v1/health` | pública | `200` `{ "status": "ok", "db": "ok" }` · `503` si no hay conexión a la base |
+| GET | `/health` | pública | `200` `{ "status": "ok" }` — la API está viva; fuera del prefijo `/api/v1` y sin tocar la base |
+| GET | `/api/v1/health` | pública | `200` `{ "status": "ok", "db": "ok" }` · `503 BD_NO_DISPONIBLE` si la base no responde |
+
+`GET /health` es el chequeo que pide la consigna de la clase del 27/10
+(`curl http://localhost:8000/health` → `{"status":"ok"}`).
 
 ### 3.7 Trazabilidad pantalla → endpoint
 
