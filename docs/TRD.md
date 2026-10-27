@@ -26,7 +26,7 @@ e imágenes Docker al crear el scaffold (M0).
 | Seguridad | bcrypt + PyJWT | 5.0.0 + 2.15.1 | hash de contraseñas (TD-003) y tokens de acceso (TD-001) |
 | Rate limiting | slowapi | 0.1.10 | límites por IP declarativos sobre endpoints de FastAPI (TD-006) |
 | BD | PostgreSQL | 18.6 (`postgres:18.6`) | fijado por SPEC |
-| Mail (dev) | Mailpit | tag `v1.x` exacto se fija en la tarea 0.2 | SMTP de prueba con bandeja web (TD-007); herramienta auxiliar, no forma parte del stack de la SPEC |
+| Mail (dev) | Mailpit | tag `v1.x` exacto se fija al sumarlo al compose (tarea 1.5) | SMTP de prueba con bandeja web (TD-007); herramienta auxiliar, no forma parte del stack de la SPEC |
 | Infra (dev) | Docker Engine + Docker Compose | 29.6.2 · 5.1.4 | entorno reproducible con un solo comando |
 
 > FastAPI se fija en **0.158.2** aunque PyPI ya publica versiones posteriores: es la referencia de
@@ -161,9 +161,9 @@ roadmap-cursos/
 | Servicio | Imagen/base | Puerto | Rol |
 |----------|-------------|--------|-----|
 | postgres | `postgres:18.6` | 5432 | base de datos; volumen `pgdata` montado en `/var/lib/postgresql` (cambio de PostgreSQL 18) |
-| backend | `python:3.13-slim` + uv 0.13.5 | 8000 | API FastAPI con `--reload`; al iniciar corre `alembic upgrade head` y el seed |
-| frontend | `node:22-alpine` + pnpm 12.15.0 | 5173 | Vite dev server (`host: true`) con proxy `/api` → `http://backend:8000` |
-| mailpit | `axllent/mailpit` | 8025 (web) · 1025 (SMTP, interno) | bandeja de los mails de recuperación |
+| backend | `python:3.13-slim` + uv 0.13.5 | 8000 | API FastAPI con `--reload`; desde la tarea 0.4, al iniciar corre `alembic upgrade head` y el seed |
+| frontend | `node:22-alpine` + pnpm 12.15.0 | 5173 | Vite dev server (`host: true`) con proxy `/api` → `http://backend:8000` (variable `API_PROXY_TARGET`) |
+| mailpit | `axllent/mailpit` | 8025 (web) · 1025 (SMTP, interno) | bandeja de los mails de recuperación — se suma en M1 (tarea 1.5) |
 
 ```mermaid
 flowchart LR
@@ -174,14 +174,19 @@ flowchart LR
     BROWSER -. "bandeja :8025" .-> MP
 ```
 
-- `backend` espera a `postgres` con `depends_on: condition: service_healthy` (healthcheck básico
-  con `pg_isready`).
-- Código montado como volumen para hot reload; `node_modules` y `.venv` quedan en volúmenes del
-  contenedor para no pisarse con los del host.
-- Todas las variables tienen valor por defecto de desarrollo en el compose (`${VAR:-default}`),
-  así `docker compose up` funciona en una máquina limpia sin crear `.env`.
+- **v0.1.0 (scaffold):** 3 servicios — `postgres`, `backend` y `frontend`. Por consigna de la
+  clase del 27/10 no hay healthchecks: `backend` usa `depends_on: [postgres]` simple. La API no
+  toca la base al arrancar, así que no necesita esperarla; `GET /api/v1/health` responde `503`
+  hasta que PostgreSQL está listo. La espera con healthcheck (`pg_isready`) se suma cuando el
+  backend corra migraciones al iniciar (tarea 0.4).
+- Solo se monta el código fuente (`backend/app`, `frontend/src` y `frontend/public`) para hot
+  reload; las dependencias (`/opt/venv` y `node_modules`) quedan dentro de la imagen y no se pisan
+  con las de la máquina host.
+- Todas las variables tienen valor por defecto de desarrollo en el compose (`${VAR:-default}`):
+  `docker compose up` funciona aunque no exista `.env`, y `.env.example` documenta cada una.
 
-> En la clase del 27/10 estos Dockerfiles evolucionan a multi-stage. Por ahora, lo mínimo que levanta.
+> Los Dockerfiles son de desarrollo y simples a propósito: multi-stage, healthchecks y
+> optimización de imágenes quedan para una clase posterior.
 
 ## 4. Convenciones
 
@@ -296,6 +301,8 @@ El catálogo completo de `code` está en [BackendSchema §3](BackendSchema.md#3-
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NOMBRE` | `admin@senda.local` / `Admin1234` / `Moderación Senda` | sí (seed) | primer usuario admin que crea el seed si no existe |
 | `SEED_DEMO` | `true` | no | carga usuarios y cursos de demostración |
 | `VITE_API_BASE_URL` | `/api/v1` | no | base de la API en el frontend (pasa por el proxy de Vite) |
+| `API_PROXY_TARGET` | `http://backend:8000` (en Compose) | no | destino del proxy `/api` de Vite; sin la variable usa `http://localhost:8000` |
+| `POSTGRES_PORT` / `BACKEND_PORT` / `FRONTEND_PORT` | `5432` / `8000` / `5173` | no | puertos publicados en la máquina host |
 
 ### 4.5 Logging y excepciones
 
@@ -325,6 +332,7 @@ El catálogo completo de `code` está en [BackendSchema §3](BackendSchema.md#3-
 | El rate limiter en memoria se reinicia con el contenedor y no sirve con varios workers | alta | bajo | aceptado para dev (1 worker); documentado en TD-006; Redis si se escala |
 | bcrypt 5 lanza error con contraseñas de más de 72 bytes | media | medio | validar longitud en bytes en el schema antes de hashear (TD-003) |
 | Hot reload de Vite o Uvicorn no detecta cambios dentro de Docker | media | medio | `host: true`; si el sistema de archivos no notifica, `server.watch.usePolling` |
+| Puertos 5432, 8000 o 5173 ocupados por otros proyectos (prácticas anteriores con Docker) | media | medio | `docker ps` antes de levantar; puertos configurables en `.env` |
 | Versiones nuevas (Vite 8, pnpm 12) con cambios respecto de tutoriales conocidos | media | medio | versiones fijadas en lockfiles; ante un bloqueo, bajar de versión menor queda documentado como ticket `chore(deps)` |
 | El tiempo de la Instancia B (fin de semana) no alcanza para todos los P0 | media | alto | plan ordenado por dependencias con estimaciones; P1 separado en M5; seed con datos para probar cada historia sin cargar a mano |
 
