@@ -11,8 +11,42 @@
 
 ## Cómo levantar
 
-> 🚧 Se completa en el ticket T4 (Docker Compose de desarrollo). Las variables de entorno de
-> ejemplo están en [`.env.example`](.env.example).
+Requisitos: **Git** y **Docker** con Docker Compose (versiones registradas en el
+[TRD §1](docs/TRD.md#1-stack-y-versiones-exactas): Docker 29.6.2 · Compose 5.1.4).
+
+```bash
+git clone https://github.com/EnzoMascena/roadmap-cursos.git
+cd roadmap-cursos
+cp .env.example .env
+docker compose up
+```
+
+La primera vez construye las imágenes (tarda unos minutos). Cuando los 3 servicios están arriba:
+
+| Qué | URL | Qué tenés que ver |
+|-----|-----|-------------------|
+| Frontend | http://localhost:5173 | el catálogo con 6 cursos de ejemplo |
+| Backend | http://localhost:8000/health | `{"status":"ok"}` |
+| API del catálogo | http://localhost:8000/api/v1/cursos | la primera página del catálogo en JSON |
+| API + base de datos | http://localhost:8000/api/v1/health | `{"status":"ok","db":"ok"}` (si da `503`, PostgreSQL todavía está arrancando: esperá unos segundos) |
+| Documentación de la API | http://localhost:8000/docs | Swagger UI de FastAPI |
+| PostgreSQL | `localhost:5432` | usuario, clave y base: `senda` |
+
+- **Frenar:** `Ctrl+C` y después `docker compose down` (con `-v` también borra los datos de la base).
+- **Si cambian dependencias** (`pyproject.toml` o `package.json`): `docker compose up --build`.
+- **Ver el estado vacío del catálogo:** `SEED_DEMO=false` en el `.env` y `docker compose up -d backend`.
+- **Puerto ocupado** (`port is already allocated`): frená el otro servicio (`docker ps` para verlo)
+  o cambiá `POSTGRES_PORT`, `BACKEND_PORT` o `FRONTEND_PORT` en el `.env`.
+
+<details>
+<summary>Sin Docker (opcional)</summary>
+
+- **Backend** (requiere uv): `cd backend && uv sync && uv run uvicorn app.main:app --reload`
+  → http://localhost:8000/health
+- **Frontend** (requiere Node 20.19+ o 22.12+ y pnpm 12): `cd frontend && pnpm install && pnpm dev`
+  → http://localhost:5173 (el proxy `/api` apunta a `http://localhost:8000`)
+
+</details>
 
 ## Qué hace
 
