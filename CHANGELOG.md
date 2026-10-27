@@ -14,10 +14,12 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - `.env.example` con las variables de desarrollo y este `CHANGELOG.md`.
 - Backend mínimo con FastAPI + uv: `GET /health`, `GET /api/v1/health` (chequea la base) y `GET /api/v1/cursos` paginado, con cursos de ejemplo en memoria.
 - Frontend mínimo con React + Vite + pnpm: pantalla de catálogo que consume `GET /api/v1/cursos`, con estados de carga, error y vacío, paginador y proxy `/api` hacia el backend.
+- Docker Compose de desarrollo con PostgreSQL 18.6, backend y frontend, e instrucciones verificables en el README.
 
 ### Changed
 
 - TRD §4.1: el flujo de Git pasa de GitHub Flow adaptado a `main`/`dev` con releases versionadas.
 - BackendSchema §3.6: se documenta `GET /health` y el error `503 BD_NO_DISPONIBLE`.
+- TRD §3.3 y §4.4: servicios de Compose y variables de entorno del scaffold; Mailpit pasa a la tarea 1.5.
 
 [Unreleased]: https://github.com/EnzoMascena/roadmap-cursos/compare/main...dev
