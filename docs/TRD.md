@@ -185,30 +185,60 @@ flowchart LR
 
 ## 4. Convenciones
 
-### 4.1 Flujo de Git — GitHub Flow adaptado
+### 4.1 Flujo de Git — main, dev y releases versionadas
 
-- **`main`** es la única rama permanente y siempre está entregable. No se commitea directo sobre
-  `main`; la única excepción es el primer commit (SPEC de clase tal cual), exigido por la consigna.
-- **Ramas cortas** que salen de `main` y vuelven a `main`:
+> **Cambio de flujo (27/10/2026, consigna de la clase):** la documentación de la Instancia A se
+> hizo con GitHub Flow adaptado (ramas `docs/<documento>` mergeadas directo a `main`). Desde el
+> scaffold v0.1.0 el proyecto usa este flujo, con una rama de integración `dev` y releases
+> taggeadas. La historia anterior queda como está.
 
-  | Tipo de trabajo | Nombre de rama | Ejemplo |
-  |-----------------|----------------|---------|
-  | Documentación (Instancia A: una rama por documento) | `docs/<documento>` | `docs/prd`, `docs/backend-schema` |
-  | Tarea del plan (Instancia B: una rama por tarea o lote coherente) | `feat/<modulo>-<tarea>` | `feat/m1-login-rate-limit` |
-  | Corrección | `fix/<tema>` | `fix/catalogo-paginacion-vacia` |
-  | Infraestructura Docker | `docker/<tema>` | `docker/compose-dev` |
-  | Mantenimiento y configuración | `chore/<tema>` | `chore/gitignore` |
-  | Tickets de la clase del 27/10 | `<tipo>/T<n>-<tema>` | `test/T2-services-roadmap` |
+```mermaid
+gitGraph
+    commit id: "docs Instancia A"
+    branch dev
+    checkout dev
+    branch T1-scaffold
+    commit id: "chore: scaffold"
+    checkout dev
+    merge T1-scaffold
+    branch T2-backend
+    commit id: "feat: backend"
+    checkout dev
+    merge T2-backend
+    commit id: "docs: changelog"
+    checkout main
+    merge dev tag: "v0.1.0"
+```
 
-- **Cómo se mergea:** con la rama terminada y revisada, `git switch main` y
-  `git merge --no-ff <rama>` (o Pull Request en GitHub con merge commit). El `--no-ff` deja un
-  merge commit que hace visible la rama en la historia.
-- **Los merge commits también son Conventional Commits:** `docs(prd): merge branch docs/prd`
-  (en un PR se edita el mensaje antes de confirmar).
-- **Quién revisa:** trabajo individual → auto-revisión antes de cada merge: `git diff main...<rama>`,
-  coherencia con los demás documentos y la checklist de entrega. Las observaciones del docente
-  entran como ramas `fix/` o `docs/` que referencian el hilo de correo.
-- **Ramas mergeadas:** se pushean al remoto y se conservan hasta la aprobación de la instancia.
+| Rama | Nace de | Contiene | Se mergea a |
+|------|---------|----------|-------------|
+| `main` | — (raíz) | solo releases taggeadas `vX.Y.Z` con el `CHANGELOG.md` actualizado | — |
+| `dev` | `main` (una sola vez) | integración: todo lo que entra al próximo release | `main`, solo en un release |
+| `feat/T{N}-descripcion-corta` | `dev` | una feature o un ticket (N = número de ticket) | `dev` |
+| `fix/descripcion-corta` | `dev` | un fix | `dev` |
+
+- **`main` no se toca:** nunca recibe commits directos ni merges de `feat/*` o `fix/*`. Solo
+  recibe `dev` en el momento de un release, siempre con tag.
+- **Ramas de trabajo:** nacen de `dev` y vuelven a `dev` con `git merge --no-ff` (el merge commit
+  deja la rama visible en la historia). Después se borran con `git branch -d <rama>`.
+- **Merge commits convencionales:** `<tipo>: merge feat/T{N}-… into dev` (el tipo es el del
+  ticket) y `chore(release): merge dev into main for vX.Y.Z`.
+- **Release** (ejemplo `v0.1.0`):
+  1. todas las ramas del release mergeadas a `dev`, sin ramas `feat/*` huérfanas;
+  2. en `dev`: el `CHANGELOG.md` pasa lo de `[Unreleased]` a `[vX.Y.Z] - AAAA-MM-DD` y el
+     [Implementation Plan](IMPLEMENTATION_PLAN.md) marca las tareas cerradas
+     (`docs: finalize changelog for vX.Y.Z`);
+  3. `git switch main && git merge --no-ff dev -m "chore(release): merge dev into main for vX.Y.Z"`;
+  4. `git tag -a vX.Y.Z -m "release: …"` y `git push origin main dev --tags`.
+- **Versionado semántico:** `v0.y.z` mientras el producto es inestable. MINOR (`v0.X.0`):
+  features nuevas compatibles · PATCH (`v0.y.Z`): fixes sin features · MAJOR (`vX.0.0`): cambio
+  que rompe compatibilidad (por ejemplo, de la API).
+- **CHANGELOG:** `CHANGELOG.md` en la raíz con formato
+  [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); categorías `Added`, `Changed`,
+  `Fixed` y `Removed`, solo las que tengan contenido. Cada ticket suma su línea en `[Unreleased]`.
+- **Quién revisa:** trabajo individual → auto-revisión antes de cada merge (`git diff dev...<rama>`
+  y el "Hecho cuando…" de la tarea en el plan). Las observaciones del docente entran como `fix/…`
+  o como un ticket nuevo.
 
 ### 4.2 Commits
 
