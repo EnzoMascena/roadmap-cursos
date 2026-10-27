@@ -1,0 +1,39 @@
+.paginador {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 40px;
+  padding-inline: var(--space-3);
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-link);
+  font: var(--text-label);
+  cursor: pointer;
+}
+
+.boton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.boton:disabled {
+  color: rgba(32, 33, 36, 0.38);
+  cursor: not-allowed;
+}
+
+.boton :global(.material-symbols-rounded) {
+  font-size: 20px;
+}
+
+.actual {
+  font: var(--text-label);
+  color: var(--color-text-muted);
+}

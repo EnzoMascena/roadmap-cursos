@@ -13,6 +13,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Estructura de carpetas por dominio (Screaming Architecture) en `backend/app` y `frontend/src/features`.
 - `.env.example` con las variables de desarrollo y este `CHANGELOG.md`.
 - Backend mínimo con FastAPI + uv: `GET /health`, `GET /api/v1/health` (chequea la base) y `GET /api/v1/cursos` paginado, con cursos de ejemplo en memoria.
+- Frontend mínimo con React + Vite + pnpm: pantalla de catálogo que consume `GET /api/v1/cursos`, con estados de carga, error y vacío, paginador y proxy `/api` hacia el backend.
 
 ### Changed
 
