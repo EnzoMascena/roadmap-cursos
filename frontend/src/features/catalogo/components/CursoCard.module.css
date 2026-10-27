@@ -1,0 +1,68 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  height: 100%;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-1);
+  transition: box-shadow var(--motion-fast);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-2);
+}
+
+.chip {
+  align-self: flex-start;
+  padding: 4px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-variant);
+  color: var(--color-text-muted);
+  font: var(--text-label-sm);
+}
+
+.titulo {
+  display: -webkit-box;
+  overflow: hidden;
+  font: var(--text-title);
+  color: var(--color-text);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.meta,
+.docentes {
+  font: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.docentes {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: auto 0 0;
+  padding: var(--space-2) 0 0;
+  list-style: none;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: var(--text-label-sm);
+  color: var(--color-text-muted);
+}
+
+.badge :global(.material-symbols-rounded) {
+  font-size: 18px;
+}
